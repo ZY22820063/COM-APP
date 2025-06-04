@@ -104,30 +104,35 @@ if abs(total - 1.0) > 1e-6:
     st.error(f"❌ The total content must be 1.0. Current total: {total:.3f}")
 else:
     if st.button("Predict TC & TS"):
-        # 加载模型（建议只加载一次，可在上方全局加载后传入）
+        # 加载模型
         tc_model = xgb.Booster()
         ts_model = xgb.Booster()
         tc_model.load_model("xgb_model-tc-ratio.model")
         ts_model.load_model("xgb_model-ts-ratio.model")
 
-        # 构造特征并预测
+        # 构造输入 DataFrame
         input_df = pd.DataFrame([{
             'PI-content': pi_content,
             'CF-content': cf_content,
             'GP-content': gp_content,
             'Sizing agent-content': sizing_content
         }])
-        dmatrix = xgb.DMatrix(input_df)
+        
+        # 新增特征 CF/S
+        input_df['CF/S'] = cf_content / sizing_content if sizing_content != 0 else 0.0
 
+        # 转为 DMatrix 并预测
+        dmatrix = xgb.DMatrix(input_df)
         tc_pred = tc_model.predict(dmatrix)[0]
         ts_pred = ts_model.predict(dmatrix)[0]
 
+        # 输出结果
         st.success("✅ Prediction complete")
         st.write(f"**Thermal Conductivity (TC)**: `{tc_pred:.3f} W/m·K`")
         st.write(f"**Tensile Strength (TS)**: `{ts_pred:.2f} MPa`")
 
-        # 高性能提示
         if tc_pred >= 12 and ts_pred >= 70:
             st.markdown("🎯 **This is a high-performance material candidate!**")
+
 
 
